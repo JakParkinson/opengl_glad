@@ -41,18 +41,34 @@ std::string fragmentShaderCode = readShaderFile("fragment.glsl");
 const char* vertexShaderSource = vertexShaderCode.c_str();
 const char* fragmentShaderSource = fragmentShaderCode.c_str();
 
+
+float triangleX = 0.0f;
+float triangleY = 0.0f;
+const float moveSpeed = 0.02f; 
+
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+    
+    // WASD movement
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        triangleY += moveSpeed;  // Move up
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        triangleY -= moveSpeed;  // Move down
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        triangleX -= moveSpeed;  // Move left
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        triangleX += moveSpeed;  // Move right
+}
+
 int main()
 {
-    // glfw: initialize and configure
-    // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-
-    // glfw window creation
-    // --------------------
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
@@ -63,17 +79,13 @@ int main()
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
-    // build and compile our shader program
-    // ------------------------------------
-    // vertex shader
+
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
@@ -114,9 +126,10 @@ int main()
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-         0.0f,  0.5f, 0.0f   // top 
+        // positions        // colors
+        0.1f, -0.1f, 0.0f,  1.0f, 0.0f, 0.0f, // bottom right - red
+        -0.1f, -0.1f, 0.0f,  0.0f, 1.0f, 0.0f, // bottom left - green
+        0.0f,  0.1f, 0.0f,  0.0f, 0.0f, 1.0f  // top - blue
     };
 
     unsigned int VBO, VAO;
@@ -128,8 +141,14 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    // color attribute  
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
 
     // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
@@ -141,9 +160,8 @@ int main()
     glBindVertexArray(VAO);
 
 
-    // render loop
-    // -----------
-    while (!glfwWindowShouldClose(window))
+
+        while (!glfwWindowShouldClose(window))
     {
         // input
         // -----
@@ -157,18 +175,13 @@ int main()
         // be sure to activate the shader before any calls to glUniform
         glUseProgram(shaderProgram);
 
-        // update shader uniform
-        double timeValue = glfwGetTime();
-        float xOffset = static_cast<float>(sin(timeValue) * 0.5);  // Oscillate between -0.5 and +0.5
 
-        // Set the position offset
-        int offsetLocation = glGetUniformLocation(shaderProgram, "xOffset");
-        glUniform1f(offsetLocation, xOffset);
+        // In the render loop, replace the sin animation with:
+        int xOffsetLocation = glGetUniformLocation(shaderProgram, "xOffset");
+        int yOffsetLocation = glGetUniformLocation(shaderProgram, "yOffset");
+        glUniform1f(xOffsetLocation, triangleX);
+        glUniform1f(yOffsetLocation, triangleY);
 
-        // Keep the color animation too if you want
-        float greenValue = static_cast<float>(sin(timeValue) / 2.0 + 0.5);
-        int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
         // render the triangle
         glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -189,21 +202,13 @@ int main()
     // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
+
+
+
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-}
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
+    // make sure the viewport matches the new window dimensions
     glViewport(0, 0, width, height);
 }

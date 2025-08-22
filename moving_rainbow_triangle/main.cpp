@@ -114,9 +114,10 @@ int main()
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-         0.0f,  0.5f, 0.0f   // top 
+    // positions // colors
+        0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
+        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f // top
     };
 
     unsigned int VBO, VAO;
@@ -128,8 +129,13 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    // color attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(1);    
 
     // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
@@ -138,7 +144,7 @@ int main()
 
     // bind the VAO (it was already bound, but just to demonstrate): seeing as we only have a single VAO we can 
     // just bind it beforehand before rendering the respective triangle; this is another approach.
-    glBindVertexArray(VAO);
+
 
 
     // render loop
@@ -159,6 +165,14 @@ int main()
 
         // update shader uniform
         double timeValue = glfwGetTime();
+        float red = static_cast<float>(sin(timeValue) * 0.5 + 0.5);
+        float green = static_cast<float>(sin(timeValue + 2.0) * 0.5 + 0.5);
+        float blue = static_cast<float>(sin(timeValue + 4.0) * 0.5 + 0.5);
+
+        int colorLocation = glGetUniformLocation(shaderProgram, "colorTint");
+        glUniform3f(colorLocation, red, green, blue);
+
+
         float xOffset = static_cast<float>(sin(timeValue) * 0.5);  // Oscillate between -0.5 and +0.5
 
         // Set the position offset
@@ -166,11 +180,12 @@ int main()
         glUniform1f(offsetLocation, xOffset);
 
         // Keep the color animation too if you want
-        float greenValue = static_cast<float>(sin(timeValue) / 2.0 + 0.5);
-        int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        // float greenValue = static_cast<float>(sin(timeValue) / 2.0 + 0.5);
+        // int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+        // glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
         // render the triangle
+        glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
