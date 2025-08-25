@@ -272,17 +272,6 @@ int main()
     glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0); // texture unit 0
     glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1); // texture unit 1
 
-
-    // // camera junk:
-    // glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    // glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-    // glm::vec3 cameraUp = glm::cross(camerairection, cameraRight);
-
-    // glm::mat4 view;
-    // view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
-    //                    glm::vec3(0.0f, 0.0f, 0.0f),
-    //                    glm::vec3(0.0f, 1.0f, 0.0f));
-    
     const float radius = 10.0f;
 
     // render loop
