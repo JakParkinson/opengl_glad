@@ -302,7 +302,7 @@ int main()
         glfwPollEvents();
     }
 
-    // delatocate , delete
+    // delatocate , deletea
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderProgram);
