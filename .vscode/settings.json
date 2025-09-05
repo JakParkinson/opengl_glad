@@ -77,5 +77,6 @@
         "typeindex": "cpp",
         "valarray": "cpp",
         "stdfloat": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "/home/jack/learn_opengl_tutorials/glm"
 }
