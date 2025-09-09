@@ -192,10 +192,10 @@ int main()
         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        // model = glm::mat4(1.0f);
+        // model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        // shader.setMat4("model", model);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
 
   
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
