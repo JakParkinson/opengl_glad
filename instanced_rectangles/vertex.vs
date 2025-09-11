@@ -1,8 +1,12 @@
 #version 330 core
-out vec4 FragColor;
-in vec3 ourColor;  // Changed from vec4 to vec3, and in (not out)
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor;
+layout (location = 2) in vec2 aOffset;
+
+out vec3 ourColor;
+
 
 void main()
-{
-    FragColor = vec4(ourColor, 1.0);  // Changed from outColor to ourColor
+{    gl_Position = vec4(aPos.x + aOffset.x, aPos.y + aOffset.y, 0.0, 1.0);
+    ourColor = aColor;  // Multiply vertex color by tint
 }

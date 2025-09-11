@@ -5,7 +5,7 @@
 #include <cmath>
 #include <fstream>
 #include <sstream>
-
+#include "shader_m.h"
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 
@@ -14,32 +14,6 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 
-
-std::string readShaderFile(const std::string& filePath) {
-    std::ifstream shaderFile;
-    std::stringstream shaderStream;
-    
-    // Ensure ifstream objects can throw exceptions
-    shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    
-    try {
-        shaderFile.open(filePath);
-        shaderStream << shaderFile.rdbuf();
-        shaderFile.close();
-        return shaderStream.str();
-    }
-    catch (std::ifstream::failure& e) {
-        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << filePath << std::endl;
-        return "";
-    }
-}
-
-// Replace those long string literals with:
-std::string vertexShaderCode = readShaderFile("vertex.vs");
-std::string fragmentShaderCode = readShaderFile("fragment.gs");
-
-const char* vertexShaderSource = vertexShaderCode.c_str();
-const char* fragmentShaderSource = fragmentShaderCode.c_str();
 
 int main()
 {
@@ -71,79 +45,68 @@ int main()
         return -1;
     }
 
-    // build and compile our shader program
-    // ------------------------------------
-    // vertex shader
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-    // check for shader compile errors
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
+
+    Shader shader("vertex.vs", "fragment.fs");
+
+
+    //set offsets
+    glm::vec2 translations[100];
+    int index = 0;
+    float offset = 0.1f;
+    for (int y = -10; y < 10; y+=2)
     {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+        for (int x=-10; x<10; x+=2)
+        {
+            glm::vec2 translation;
+            translation.x = (float)x / 10.0f + offset;
+            translation.y = (float)y / 10.0f + offset;
+            translations[index++] = translation;
+        }
     }
-    // fragment shader
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    // check for shader compile errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    // link shaders
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    // check for linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+
+    unsigned int instanceVBO;
+    glGenBuffers(1, &instanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2)*100, &translations[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
     // positions // colors
-        0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
-        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f // top
+        -0.05f, 0.05f, 0.0f, 1.0f, 0.0f, 0.0f, // top left
+        0.05f, -0.05f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom right
+        -0.05f, -0.05f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom left
+
+        -0.05f, 0.05f, 0.0f, 1.0f, 0.0f, 0.0f, // top left
+        0.05f, -0.05f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom right
+        0.05f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f // top right
     };
-
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+     
+    unsigned int quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-
-    // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
-    glEnableVertexAttribArray(1);    
-
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    // glBindVertexArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)(3*sizeof(float)));
+    //instance data
+    glEnableVertexAttribArray(2);
 
 
-    // bind the VAO (it was already bound, but just to demonstrate): seeing as we only have a single VAO we can 
-    // just bind it beforehand before rendering the respective triangle; this is another approach.
+    //instance
+    glEnableVertexAttribArray(2);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,2*sizeof(float), (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribDivisor(2,1);
+
+
 
 
 
@@ -157,36 +120,27 @@ int main()
 
         // render
         // ------
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // be sure to activate the shader before any calls to glUniform
-        glUseProgram(shaderProgram);
+        // glUseProgram(shaderProgram);
+        shader.use();
 
         // update shader uniform
         double timeValue = glfwGetTime();
-        float red = static_cast<float>(sin(timeValue) * 0.5 + 0.5);
-        float green = static_cast<float>(sin(timeValue + 2.0) * 0.5 + 0.5);
-        float blue = static_cast<float>(sin(timeValue + 4.0) * 0.5 + 0.5);
 
-        int colorLocation = glGetUniformLocation(shaderProgram, "colorTint");
-        glUniform3f(colorLocation, red, green, blue);
-
-
-        float xOffset = static_cast<float>(sin(timeValue) * 0.5);  // Oscillate between -0.5 and +0.5
+        float xOffset = static_cast<float>(sin(timeValue) * 0.05);  // Oscillate between -0.5 and +0.5
 
         // Set the position offset
-        int offsetLocation = glGetUniformLocation(shaderProgram, "xOffset");
-        glUniform1f(offsetLocation, xOffset);
+        // int offsetLocation = glGetUniformLocation(shader, "xOffset");
+        // glUniform1f(offsetLocation, xOffset);
 
-        // Keep the color animation too if you want
-        // float greenValue = static_cast<float>(sin(timeValue) / 2.0 + 0.5);
-        // int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-        // glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
         // render the triangle
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(quadVAO);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100);
+        glBindVertexArray(0);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -196,9 +150,8 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteProgram(shaderProgram);
+    glDeleteVertexArrays(1, &quadVAO);
+    glDeleteBuffers(1, &quadVBO);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
