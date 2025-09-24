@@ -53,6 +53,17 @@ glm::vec3 anchorPoint(0.0f, 2.0f, 0.0f);
 bool isDragging = false;
 
 
+struct TraceParticle {
+    glm::vec3 position;
+    float life;
+};
+
+const int MAX_TRACE_PARTICLES = 1000;
+std::vector<TraceParticle> traceParticles(MAX_TRACE_PARTICLES);
+float traceLifeTime = 0.9f;
+int traceSpawnRate = 100;
+static float timeSinceLastSpawn = 0.0f;
+
 // Function to generate sphere vertices and indices
 void generateSphere(float radius, int latitudeSegments, int longitudeSegments, 
                    std::vector<float>& vertices, std::vector<unsigned int>& indices) {
@@ -126,6 +137,8 @@ void generateRopeLine(glm::vec3 anchorPoint, glm::vec3 spherePos, std::vector<fl
 
 
 
+static float fpsTimer = 0.0f;
+static int frameCount = 0;
 
 int main()
 {
@@ -257,6 +270,18 @@ int main()
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    // particle setup:
+    unsigned int traceVBO, traceVAO;
+    glGenVertexArrays(1, &traceVAO);
+    glGenBuffers(1, &traceVBO);
+
+    glBindVertexArray(traceVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, traceVBO);
+    glBufferData(GL_ARRAY_BUFFER, MAX_TRACE_PARTICLES * 3 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
     // rope setup
     
   //  glm::vec3 anchorPoint(0.0, 2.0f, 0.0f);
@@ -320,6 +345,17 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        frameCount++;
+        fpsTimer += deltaTime;
+
+        if (fpsTimer) {
+            float fps = frameCount/fpsTimer;
+            std::cout << "FPS: " << fps << std::endl;
+            frameCount = 0;
+            fpsTimer = 0.0f;
+        }
+
+
         // input
         // -----
         processInput(window);
@@ -368,6 +404,32 @@ int main()
 
         
         // END OF DUPTATENG
+
+
+        // update trace particleS:
+        // -----
+        timeSinceLastSpawn += deltaTime;
+        if (timeSinceLastSpawn >= 1.0f/traceSpawnRate) {
+            for (auto& particle : traceParticles) {
+                if (particle.life <= 0.0f) {
+                    particle.position = spherePosition; // spawn at sphere center
+                    particle.life = 1.0f;
+                    break;
+                }
+            }
+            timeSinceLastSpawn = 0.0f;
+        }
+
+        std::vector<float> tracePositions;
+        for (auto& particle : traceParticles) {
+            if (particle.life > 0.0f) {
+                particle.life -= deltaTime/traceLifeTime;
+
+                tracePositions.push_back(particle.position.x);
+                tracePositions.push_back(particle.position.y);
+                tracePositions.push_back(particle.position.z);
+            }
+        }
     
 
         // be sure to activate shader when setting uniforms/drawing objects
@@ -399,6 +461,44 @@ int main()
         glBindBuffer(GL_ARRAY_BUFFER, ropeVBO);
         glBufferData(GL_ARRAY_BUFFER,  ropeVertices.size() * sizeof(float), ropeVertices.data(), GL_DYNAMIC_DRAW);
 
+        // particles:
+        // if (!tracePositions.empty()) {
+        //     lightCubeShader.use();
+        //     lightCubeShader.setMat4("projection", globalProjection);
+        //     lightCubeShader.setMat4("view", globalView);
+        //     lightCubeShader.setMat4("model", glm::mat4(1.0f));
+        //     lightCubeShader.setVec3("color", 0.0f, 1.0f, 0.0f);
+
+        //     glBindVertexArray(traceVAO);
+        //     glBindBuffer(GL_ARRAY_BUFFER, traceVBO);
+        //     glBufferSubData(GL_ARRAY_BUFFER, 0, tracePositions.size() * sizeof(float), tracePositions.data());
+
+        //     glPointSize(3.0f);
+        //     glDrawArrays(GL_POINTS, 0, tracePositions.size()/3);
+
+        // }
+
+        for (auto& particle : traceParticles) {
+            if (particle.life > 0.0f) {
+                float intensity = particle.life; // 1.0 when fresh, 0.0 when dying
+
+                lightCubeShader.use();
+                lightCubeShader.setMat4("projection", globalProjection);
+                lightCubeShader.setMat4("view", globalView);
+                lightCubeShader.setMat4("model", glm::mat4(1.0f));
+                lightCubeShader.setVec3("color", 0.0f, intensity, 0.0f);
+
+
+                glBindVertexArray(traceVAO);
+                glBindBuffer(GL_ARRAY_BUFFER, traceVBO);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, 3 * sizeof(float), &particle.position.x);
+
+                glPointSize(4.0f);
+                glDrawArrays(GL_POINTS, 0, 1);
+            }
+        }
+
+
         // light ube shader
         lightCubeShader.use();
         lightCubeShader.setMat4("projection", globalProjection);
@@ -410,7 +510,7 @@ int main()
         lightCubeShader.setVec3("color", 0.6f, 0.3f, 0.1f);
 
         glBindVertexArray(ropeVAO);
-        glLineWidth(3.0f);
+        glLineWidth(5.0f);
         glDrawArrays(GL_LINES, 0, 2);
 
 
@@ -447,6 +547,8 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
+bool wangWANG = true;
+bool rKeyPressed = false;  // Add this with your other globals
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -461,8 +563,17 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
     
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-        camera = Camera(glm::vec3(0.0f, 0.0f, 8.0f));
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !rKeyPressed) {
+        if (wangWANG)
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        else
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        
+        wangWANG = !wangWANG;
+      //  std::cout << "wang wang: " << wangWANG << std::endl;
+        rKeyPressed = true;
+    } else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE) {
+        rKeyPressed = false;
     }
 
     // Toggle wireframe on key press (not hold)
@@ -525,7 +636,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
             if (distance < pixel_sphere_radius) {
                 isDragging = true;
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-                std::cout << "Started Dragging" << std::endl;
+      //          std::cout << "Started Dragging" << std::endl;
             }
 
 
@@ -535,7 +646,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
             if (isDragging) {
                 double xpos, ypos;
                 glfwGetCursorPos(window, &xpos, &ypos);
-                std::cout << "Released at: " << xpos << ", " << ypos << std::endl;
+          ///      std::cout << "Released at: " << xpos << ", " << ypos << std::endl;
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); 
 
                 lastX = xpos;
@@ -594,8 +705,8 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
         theta_dot_old = 0.0f;
         globalSpherePos = newSpherePos;
 
-        std::cout << "Dragging - Screen angle: " << screenAngle << ", New pos: " << 
-                    newSpherePos.x << ", " << newSpherePos.y << std::endl;
+        // std::cout << "Dragging - Screen angle: " << screenAngle << ", New pos: " << 
+        //             newSpherePos.x << ", " << newSpherePos.y << std::endl;
                  
     } else {
         camera.ProcessMouseMovement(xoffset, yoffset);
