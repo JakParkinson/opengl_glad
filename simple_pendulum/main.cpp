@@ -408,6 +408,7 @@ int main()
 
         // update trace particleS:
         // -----
+        
         timeSinceLastSpawn += deltaTime;
         if (timeSinceLastSpawn >= 1.0f/traceSpawnRate) {
             for (auto& particle : traceParticles) {
