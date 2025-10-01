@@ -18,8 +18,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 
 // settings
-const unsigned int SCR_WIDTH = 2000;
-const unsigned int SCR_HEIGHT = 1500;
+const unsigned int SCR_WIDTH = 1600;
+const unsigned int SCR_HEIGHT = 1200;
 
 // camera
 Camera camera(glm::vec3(0.0f, 7.0f, 40.0f));
@@ -112,11 +112,6 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // line positions
-    std::vector<float> linePositions;
-    linePositions.reserve(MAX_TRACE_PARTICLES * 3);
-
-
 
 
     float curr_time = 0;
@@ -166,14 +161,10 @@ int main()
 
         Vec r_new = rk4(lorenz, r_old, dt);
 
-        /// Line Positionss:
-        linePositions.push_back(r_new.x);
-        linePositions.push_back(r_new.y);
-        linePositions.push_back(r_new.z);
-        if (linePositions.size() > MAX_TRACE_PARTICLES * 3) {
-            linePositions.erase(linePositions.begin(), linePositions.begin() + 3);
-        }
-
+        // x_new = 4*sin(curr_time*5);
+        // y_new = 4*cos(curr_time*5);
+        // z_new = z_old - 0.01;
+        // x_new,y_new,z_new = r_new.x,r_new.y,r_new.z;
 
         timeSinceLastSpawn += deltaTime;
         if (timeSinceLastSpawn >= 1.0f/traceSpawnRate) {
@@ -198,30 +189,19 @@ int main()
             }
         }
 
-
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 
-                                                (float)SCR_WIDTH / (float)SCR_HEIGHT, 
-                                                0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-
-        particleShader.use();
-        particleShader.setMat4("projection", projection);
-        particleShader.setMat4("view", view);
-        particleShader.setMat4("model", glm::mat4(1.0f));
-
-        particleShader.setVec3("color", 1.0f, 1.0f, 1.0f);  // line color
-        glBindVertexArray(particleVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, linePositions.size() * sizeof(float), linePositions.data());
-        glDrawArrays(GL_LINE_STRIP, 0, (GLsizei)(linePositions.size() / 3));
-
-
-
         for (auto& particle : traceParticles) {
             if (particle.life > 0.0f) {
                 float intensity = particle.life; // 1.0 when fresh, 0.0 when dying    
 
+                glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 
+                                                        (float)SCR_WIDTH / (float)SCR_HEIGHT, 
+                                                        0.1f, 100.0f);
+                glm::mat4 view = camera.GetViewMatrix();
 
+                particleShader.use();
+                particleShader.setMat4("projection", projection);
+                particleShader.setMat4("view", view);
+                particleShader.setMat4("model", glm::mat4(1.0f));
                 particleShader.setVec3("color", 0.0f, intensity, 0.0f);
 
    
@@ -230,7 +210,7 @@ int main()
                 glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
                 glBufferSubData(GL_ARRAY_BUFFER, 0, 3 * sizeof(float), &particle.position.x);
 
-                glPointSize(5.0f);
+                glPointSize(4.0f);
                 glDrawArrays(GL_POINTS, 0, 1);
 
             }
