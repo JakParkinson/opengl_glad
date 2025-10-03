@@ -112,6 +112,11 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // line positions
+    std::vector<float> linePositions;
+    linePositions.reserve(MAX_TRACE_PARTICLES * 3);
+
+
 
 
    // float curr_time = 0;
@@ -119,7 +124,14 @@ int main()
 
 
     // Lorenz stuff:
-    const float sigma = 10.0f, rho = 28.0f, beta = 8.0f/3.0f;
+    // float sigma = 10.0f, rho = 28.0f, beta = 8.0f/3.0f;
+   // const float sigma = 1.0f, rho = 2.0f, beta = 8.0f; // ends?
+   // const float sigma = 4.0f, rho = 20.0f, beta = 3.0f; // spiral?
+ //   const float sigma = 40.0f, rho = 15.0f, beta = 2.0f; // another spiral?
+
+    const float sigma = 10.0f, rho = 28.0f, beta = 8.0f/3.0f; // another spiral?
+
+
     
 
 
@@ -136,7 +148,7 @@ int main()
 
 
     float dt = 1e-3f; // time step for numerical integration
-    float simSpeed = 0.5f; // time scale
+    float simSpeed = 1.5f; // time scale
     float acc = 0.0f; // leftover time from previous frame
     const int maxSubsteps = 100000;
 
@@ -167,6 +179,16 @@ int main()
         int stepsThisFrame = 0;
         while (acc >= dt && stepsThisFrame < maxSubsteps) {
             r_old = rk4(lorenz, r_old, dt);
+            // lines:
+            /// Line Positionss:
+            linePositions.push_back(r_old.x);
+            linePositions.push_back(r_old.y);
+            linePositions.push_back(r_old.z);
+            if (linePositions.size() > MAX_TRACE_PARTICLES * 3) {
+                linePositions.erase(linePositions.begin(), linePositions.begin() + 3);
+            }
+
+            //
             acc  -= dt;
             ++stepsThisFrame;
         }
@@ -208,6 +230,14 @@ int main()
         particleShader.setMat4("view", view);
         particleShader.setMat4("model", glm::mat4(1.0f));
 
+
+
+        particleShader.setVec3("color", 1.0f, 1.0f, 1.0f);  // line color
+        glBindVertexArray(particleVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, linePositions.size() * sizeof(float), linePositions.data());
+        glDrawArrays(GL_LINE_STRIP, 0, (GLsizei)(linePositions.size() / 3));
+
         for (auto& particle : traceParticles) {
             if (particle.life > 0.0f) {
                 float intensity = particle.life; // 1.0 when fresh, 0.0 when dying    
@@ -221,7 +251,7 @@ int main()
                 glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
                 glBufferSubData(GL_ARRAY_BUFFER, 0, 3 * sizeof(float), &particle.position.x);
 
-                glPointSize(4.0f);
+                glPointSize(5.0f);
                 glDrawArrays(GL_POINTS, 0, 1);
 
             }

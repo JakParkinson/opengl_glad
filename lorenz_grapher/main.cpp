@@ -137,7 +137,8 @@ int main()
         };
     };
 
-    Vec r_old = Vec(-8.0f, 8.0f, 27.0f);
+    //Vec r_old = Vec(-8.0f, 8.0f, 27.0f);
+    Vec r_old = Vec(-8.0f, 8.0f, 10.0f);
 
 
     float dt = 1e-2f;
