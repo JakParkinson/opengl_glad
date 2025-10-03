@@ -6,5 +6,5 @@ uniform mat4 view;
 
 void main() {
     gl_Position = projection * view * vec4(aPos, 1.0);
-    gl_PointSize = 1.0; // size of point
+    gl_PointSize = 2.0; // size of point
 }
