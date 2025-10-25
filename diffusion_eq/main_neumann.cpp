@@ -186,26 +186,27 @@ int main()
 
 /// WAVE SETUP
 
-    float L = 40.0f;
-    float sigma = 1.0f;
-    float Dx = 0.01;
-    float Dy = 0.01;
+    float L = 30.0f;
+    float sigma = 2.0f;
+    float Dx = 4.5;
+    float Dy = 4.5;
 
-    float t_final = 1.0f;
+    float t_final = 4.0f;
 
     /// nx,ny stuff:
-    float nx = 200;
-    float ny = 200;
+    float nx = 100;
+    float ny = 100;
     float dx = L / (nx - 1.0f);
     float dy = L / (ny - 1.0f);
 
-    float r = 0.2;
+    float r = 0.24;
     float rx = r;
     float ry = r;
     
-    float amplitude = 15.0f;
+    float amplitude = 25.0f;
 
     float dt = (r*dx*dx)/Dx;
+    std::cerr << "dt: " << dt << std::endl;
     int nt = static_cast<int>(t_final / dt) + 1;
 
     /// pause for VAOs stuff
@@ -239,7 +240,6 @@ int main()
 
     std::vector<std::vector<float>> u_past(static_cast<int>(nx), std::vector<float>(static_cast<int>(ny), 0.0f));
     std::vector<std::vector<float>> u_current(static_cast<int>(nx), std::vector<float>(static_cast<int>(ny), 0.0f));
-    std::vector<std::vector<float>> u_next(static_cast<int>(nx), std::vector<float>(static_cast<int>(ny), 0.0f));
 
 
 
@@ -254,35 +254,17 @@ int main()
 
     // inital conditions of 0s:
     for (int i=0; i<nx; ++i){
-        u_past[i][0] = 0.0f;
-        u_past[i][ny-1] = 0.0f;
+        u_past[i][0] = u_past[i][1];
+        u_past[i][ny-1] = u_past[i][ny-2];
     }
     for (int k=0; k<ny; ++k){
-        u_past[0][k] = 0.0f;
-        u_past[nx-1][k] = 0.0f;
-    }
-
-    // first iteration
-    for (int i=1; i < nx-1; ++i) {
-        for (int k=1; k<ny-1; ++k) {
-            u_current[i][k] = u_past[i][k] + rx * (u_past[i+1][k] - 2.0f*u_past[i][k] + u_past[i-1][k]) + ry * (u_past[i][k+1] - 2.0f*u_past[i][k] + u_past[i][k-1]);
-        }
-    }
-
-
-    // inital conditions of 0s:
-    for (int i=0; i<nx; ++i){
-        u_current[i][0] = u_current[i][1];
-        u_current[i][ny-1] = u_current[i][ny-2];
-    }
-    for (int k=0; k<ny; ++k){
-        u_current[0][k] = u_current[1][k];
-        u_current[nx-1][k] = u_current[nx-2][k];
+        u_past[0][k] = u_past[1][k];
+        u_past[nx-1][k] = u_past[nx-2][k];
     }
 
 
 
-    int stepsPerFrame = 1;
+    int stepsPerFrame = 5;
     int frameSkip = 1;  // Only update physics every frame lol
     int frameCounter = 0;
 
@@ -362,21 +344,21 @@ int main()
         for (int step =0; step < stepsPerFrame; step++) {
                 for (int i=1; i < nx-1; ++i) {
                         for (int k=1; k<ny-1; ++k) {
-                            u_next[i][k] = 2*u_current[i][k] - u_past[i][k] + (rx*rx)*(u_current[i+1][k] - 2*u_current[i][k] + u_current[i-1][k]) + (ry*ry)*(u_current[i][k+1] - 2*u_current[i][k] + u_current[i][k-1]);
+                            u_current[i][k] = u_past[i][k] + rx*(u_past[i+1][k] - 2*u_past[i][k] + u_past[i-1][k]) + ry*(u_past[i][k+1] - 2*u_past[i][k] + u_past[i][k-1]);
                         }
                 }
 
                 for (int i=0; i<nx; ++i){
-                    u_next[i][0] = u_next[i][1];
-                    u_next[i][ny-1] = u_next[i][ny-2];
+                    u_current[i][0] = u_current[i][1];
+                    u_current[i][ny-1] = u_current[i][ny-2];
                 }
                 for (int k=0; k<ny; ++k){
-                    u_next[0][k] = u_next[1][k];
-                    u_next[nx-1][k] = u_next[nx-2][k];
+                    u_current[0][k] = u_current[1][k];
+                    u_current[nx-1][k] = u_current[nx-2][k];
                 }
 
                 u_past = u_current;
-                u_current = u_next;
+
 
         }
 
