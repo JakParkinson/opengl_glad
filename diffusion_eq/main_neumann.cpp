@@ -187,15 +187,15 @@ int main()
 /// WAVE SETUP
 
     float L = 30.0f;
-    float sigma = 2.0f;
+    float sigma = 1.5f;
     float Dx = 4.5;
     float Dy = 4.5;
 
     float t_final = 4.0f;
 
     /// nx,ny stuff:
-    float nx = 100;
-    float ny = 100;
+    float nx = 150;
+    float ny = 150;
     float dx = L / (nx - 1.0f);
     float dy = L / (ny - 1.0f);
 
@@ -203,7 +203,7 @@ int main()
     float rx = r;
     float ry = r;
     
-    float amplitude = 25.0f;
+    float amplitude = 30.0f;
 
     float dt = (r*dx*dx)/Dx;
     std::cerr << "dt: " << dt << std::endl;
@@ -244,11 +244,27 @@ int main()
 
 
     // iniial condition: Gaussian
+    // for (int i = 0; i < nx; ++i) {
+    //     for(int k = 0; k < ny; ++k) {
+    //         float dx_term = (X[i][k] - L/2.0f) * (X[i][k] - L/2.0f);
+    //         float dy_term = (Y[i][k] - L/2.0f) * (Y[i][k] - L/2.0f);
+    //         u_past[i][k] = amplitude*std::exp(-(dx_term + dy_term)/(2.0f*sigma*sigma));
+    //     }
+    // }
+
+
     for (int i = 0; i < nx; ++i) {
-        for(int k = 0; k < ny; ++k) {
-            float dx_term = (X[i][k] - L/2.0f) * (X[i][k] - L/2.0f);
-            float dy_term = (Y[i][k] - L/2.0f) * (Y[i][k] - L/2.0f);
-            u_past[i][k] = amplitude*std::exp(-(dx_term + dy_term)/(2.0f*sigma*sigma));
+        for (int k = 0; k < ny; ++k) {
+            // Gaussian 1 at position (10, 10)
+            float gauss1 = amplitude * std::exp(-((X[i][k]-10.0f)*(X[i][k]-10.0f) + 
+                                                (Y[i][k]-10.0f)*(Y[i][k]-10.0f))/(2*sigma*sigma));
+            
+            // Gaussian 2 at position (20, 20)
+            float gauss2 = amplitude * std::exp(-((X[i][k]-20.0f)*(X[i][k]-20.0f) + 
+                                                (Y[i][k]-20.0f)*(Y[i][k]-20.0f))/(2*sigma*sigma));
+
+            // ADD them together!
+            u_past[i][k] = gauss1 + gauss2;
         }
     }
 
@@ -264,7 +280,7 @@ int main()
 
 
 
-    int stepsPerFrame = 5;
+    int stepsPerFrame = 1;
     int frameSkip = 1;  // Only update physics every frame lol
     int frameCounter = 0;
 
